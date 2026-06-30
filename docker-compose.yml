@@ -1,0 +1,34 @@
+services:
+    db:
+        image: postgres:15-alpine
+        container_name: db
+        environment:
+            - POSTGRES_USER=${DB_USER}
+            - POSTGRES_PASSWORD=${DB_PASSWORD}
+            - POSTGRES_DB=${DB_NAME}
+        ports:
+            - "5432:5432"
+        volumes:
+            - db_data:/var/lib/postgresql/data
+    backend:
+        build:
+            context: ./backend
+            dockerfile: Dockerfile
+        container_name: backend
+        depends_on:
+            - db
+        ports:
+            - "8000:8000"
+        environment:
+            - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+    frontend:
+        build:
+            context: ./frontend
+            dockerfile: Dockerfile
+        container_name: frontend
+        depends_on:
+            - backend
+        ports:
+            - "80:80"
+volumes:
+    db_data:
