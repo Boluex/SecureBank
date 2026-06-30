@@ -1,0 +1,31 @@
+.form {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+
+.button {
+  width: 100%;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  padding: 0.65rem;
+  font-size: 0.95rem;
+  margin-top: 0.25rem;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.error {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid var(--color-danger);
+  color: #fecaca;
+  border-radius: var(--radius);
+  padding: 0.55rem 0.7rem;
+  font-size: 0.82rem;
+  margin-bottom: 0.75rem;
+}
