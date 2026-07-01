@@ -4,12 +4,14 @@ Wires together middleware, rate limiting, CORS and the resource routers.
 Database tables are created on startup for convenience in development.
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from app.config import get_settings
+from app.core.metrics import update_user_status_metrics
 from app.core.middleware import RequestIDMiddleware
 from app.core.rate_limit import limiter
 from app.database import Base, engine
@@ -41,3 +43,10 @@ app.include_router(transactions.router)
 def health_check() -> dict[str, str]:
     """Lightweight liveness probe used by orchestrators and tests."""
     return {"status": "ok"}
+
+
+@app.get("/metrics", tags=["monitoring"])
+def metrics() -> Response:
+    """Prometheus metrics scrape endpoint."""
+    update_user_status_metrics()
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)

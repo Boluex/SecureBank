@@ -12,6 +12,7 @@ from app.config import get_settings
 from app.core.dependencies import ACCESS_COOKIE_NAME
 from app.core.rate_limit import AUTH_RATE_LIMIT, limiter
 from app.database import get_db
+from app.core.metrics import user_logins_total, user_registrations_total
 from app.schemas.auth import TokenPair, TokenRefreshRequest, UserLogin, UserPublic, UserRegister
 from app.services import auth_service
 
@@ -51,8 +52,13 @@ def register(
     request: Request, payload: UserRegister, db_session: Session = Depends(get_db)
 ) -> UserPublic:
     """Register a new user account."""
-    user = auth_service.register_user(db_session, payload)
-    return UserPublic.model_validate(user)
+    try:
+        user = auth_service.register_user(db_session, payload)
+        user_registrations_total.labels(status="success").inc()
+        return UserPublic.model_validate(user)
+    except Exception as e:
+        user_registrations_total.labels(status="failed").inc()
+        raise e
 
 
 @router.post("/login", response_model=TokenPair)
@@ -62,10 +68,15 @@ def login(
     db_session: Session = Depends(get_db),
 ) -> TokenPair:
     """Authenticate a user and issue an access/refresh token pair."""
-    user = auth_service.authenticate_user(db_session, payload.email, payload.password)
-    access_token, refresh_token = auth_service.issue_token_pair(db_session, user)
-    _set_auth_cookies(response, access_token, refresh_token)
-    return TokenPair(access_token=access_token, refresh_token=refresh_token)
+    try:
+        user = auth_service.authenticate_user(db_session, payload.email, payload.password)
+        access_token, refresh_token = auth_service.issue_token_pair(db_session, user)
+        _set_auth_cookies(response, access_token, refresh_token)
+        user_logins_total.labels(status="success").inc()
+        return TokenPair(access_token=access_token, refresh_token=refresh_token)
+    except Exception as e:
+        user_logins_total.labels(status="failed").inc()
+        raise e
 
 
 @router.post("/refresh", response_model=TokenPair)
